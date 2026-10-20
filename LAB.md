@@ -14,20 +14,23 @@
   448 upstream commits behind the verified master. It must not be presented
   as a latest-upstream experiment.
 
-This branch currently adds documentation only. The legacy experiment's local
-source changes were preserved separately, not automatically carried forward.
+The legacy experiment's local source changes were preserved separately, not
+automatically carried forward. New fixes are based on this latest source.
 
 ## Scope and acceptance
 
-Work is limited to the owner's RiskLens Demo and authorized laboratory device.
+Keep Shadow reusable for the owner's authorized laboratory projects. Do not
+hardcode RiskLens or another special bundle identifier as the fork's allowed
+scope. RiskLens is the current experiment's subject, not a product restriction.
+Preserve ordinary upstream configuration; do not silently enable all apps.
 Preserve upstream attribution and license. Separate source-based hypotheses,
 host checks, compiled artifacts and fresh device observations in every report.
 An installed package or a written setting does not establish activation.
 
 Inspect the latest source and its declared dependency contract before choosing
 a deployment unit. Do not assume a framework from master is interchangeable
-with components from v3.7.6. Preserve a complete recoverable original, constrain
-the experiment to the owned app, and verify restoration before closing a trial.
+with components from v3.7.6. Preserve a complete recoverable original and verify
+each trial's final state, including any temporary configuration restoration.
 Do not change trust policy or expand the target scope implicitly.
 
 ## Public and private material

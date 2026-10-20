@@ -64,11 +64,16 @@ procargs_c = procargs_fn.replace("@autoreleasepool {", "{").replace(
     "[_shadow isCPathRestricted:a]", "shdw_test_cpath_restricted(a)")
 assert "@autoreleasepool" not in procargs_c and "[_shadow" not in procargs_c, (
     "shdw_procargs2_filter: Objective-C sites survived the C rewrite")
+storage_start = policy_src.index("// Per-thread environment storage.")
+storage_end = policy_src.index("// Shared PATH component filter", storage_start)
+storage_c = policy_src[storage_start:storage_end]
 
 HARNESS = r"""
 #define _GNU_SOURCE
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,10 +83,7 @@ typedef int BOOL;
 #define NO 0
 
 /* ---- doubles for the production helpers the extracted body calls ---- */
-static char *shdw_env_procargs_path = NULL;
-static size_t shdw_env_procargs_path_cap = 0;
-
-static BOOL shdw_env_tls_arm(void) { return YES; }
+__STORAGE__
 
 BOOL shdw_env_entry_hidden(const char *var) {
     return strncmp(var, "DYLD_", 5) == 0 ||
@@ -325,7 +327,11 @@ int main(void) {
     CHECK(len == before && memcmp(snapshot, payload, len) == 0,
           "an argc the payload cannot hold must pass through untouched");
 
-    free(shdw_env_procargs_path);
+    shdw_env_storage_t *storage = shdw_env_tls_get(NO);
+    if (storage) {
+        assert(pthread_setspecific(shdw_env_tls_key, NULL) == 0);
+        shdw_env_tls_destructor(storage);
+    }
 
     if (failures) { printf("%d assertion(s) failed\n", failures); return 1; }
     printf("procargs filter: all assertions passed\n");
@@ -335,7 +341,7 @@ int main(void) {
 
 
 def build_source():
-    return HARNESS.replace("__PROCARGS_FN__", procargs_c)
+    return HARNESS.replace("__STORAGE__", storage_c).replace("__PROCARGS_FN__", procargs_c)
 
 
 def run():
@@ -344,7 +350,7 @@ def run():
         exe = Path(tmp) / "procargs"
         c.write_text(build_source())
         compiled = subprocess.run(
-            [os.environ.get("CC", "cc"), "-std=c99", "-Wall", "-Wextra",
+            [os.environ.get("CC", "cc"), "-std=c99", "-Wall", "-Wextra", "-pthread",
              "-Werror", "-o", str(exe), str(c)],
             capture_output=True, text=True)
         if compiled.returncode != 0:
